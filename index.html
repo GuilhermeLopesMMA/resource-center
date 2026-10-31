@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Centro de Recursos</title>
+<style>
+:root{
+  --bg:#0f1115;--panel:#171a21;--panel2:#1e232c;--line:#2a303b;
+  --text:#e6e9ef;--muted:#8b93a3;--accent:#5b9dff;
+  --ler:#8b93a3;--a-ler:#f0b43c;--usei:#3ecf8e;--danger:#ff6b6b;
+}
+@media (prefers-color-scheme:light){
+  :root{--bg:#f5f6f8;--panel:#fff;--panel2:#eef0f4;--line:#d9dde4;--text:#1b1f27;--muted:#5d6676;--accent:#2f6fe0}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:24px 16px 64px}
+header h1{margin:0 0 4px;font-size:1.6rem}
+header p{margin:0;color:var(--muted)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:110px}
+.stat b{display:block;font-size:1.3rem}
+.stat span{color:var(--muted);font-size:.8rem}
+.bar{height:6px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:0 0 18px}
+.bar i{display:block;height:100%;background:var(--usei);width:0;transition:width .3s}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+input,select,textarea,button{font:inherit;color:var(--text)}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.toolbar input[type=search]{flex:1 1 240px;width:auto}
+.toolbar select{width:auto;flex:0 0 auto}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 13px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.danger:hover{border-color:var(--danger);color:var(--danger)}
+.list{display:grid;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:6px}
+.card-top{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.card h3{margin:0;font-size:1.02rem;word-break:break-word}
+.card h3 a{color:var(--text);text-decoration:none}
+.card h3 a:hover{color:var(--accent);text-decoration:underline}
+.host{color:var(--muted);font-size:.8rem;word-break:break-all}
+.notes{color:var(--muted);font-size:.9rem;white-space:pre-wrap}
+.meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:1px 9px;font-size:.75rem;color:var(--muted);cursor:pointer}
+.chip.cat{color:var(--accent);border-color:var(--accent)}
+.status{border-radius:99px;padding:2px 11px;font-size:.78rem;border:1px solid currentColor;background:transparent;cursor:pointer;white-space:nowrap}
+.status[data-s="por ler"]{color:var(--ler)}
+.status[data-s="a ler"]{color:var(--a-ler)}
+.status[data-s="já usei"]{color:var(--usei)}
+.actions{display:flex;gap:6px;margin-top:2px}
+.actions button{padding:3px 10px;font-size:.8rem}
+.empty{text-align:center;color:var(--muted);padding:40px 10px;border:1px dashed var(--line);border-radius:12px}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;padding:0;width:min(520px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+form.f{padding:20px;display:grid;gap:12px}
+form.f h2{margin:0}
+label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+footer{margin-top:28px;color:var(--muted);font-size:.8rem;text-align:center}
+kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Centro de Recursos</h1>
+    <p>Links, tutoriais, snippets e docs. Guardar é fácil; usar é que é a parte difícil.</p>
+  </header>
+
+  <section class="stats" id="stats"></section>
+  <div class="bar" title="% de recursos que já usaste"><i id="bar"></i></div>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Pesquisar (atalho: /)" autocomplete="off">
+    <select id="fCat"></select>
+    <select id="fStatus">
+      <option value="">Todos os estados</option>
+      <option>por ler</option>
+      <option>a ler</option>
+      <option>já usei</option>
+    </select>
+    <button class="primary" id="btnAdd">+ Adicionar</button>
+    <button id="btnExport">Exportar</button>
+    <button id="btnImport">Importar</button>
+    <input type="file" id="file" accept="application/json" hidden>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>Os dados ficam neste browser (localStorage). Exporta de vez em quando, ou limpa a cache e chora.</footer>
+</div>
+
+<dialog id="dlg">
+  <form class="f" id="form">
+    <h2 id="dlgTitle">Novo recurso</h2>
+    <label>Título
+      <input id="fTitle" required maxlength="200">
+    </label>
+    <label>URL
+      <input id="fUrl" type="url" placeholder="https://…">
+    </label>
+    <label>Categoria
+      <input id="fCategory" list="catList" placeholder="ex.: C++, Cibersegurança, Web" maxlength="60">
+      <datalist id="catList"></datalist>
+    </label>
+    <label>Tags (separadas por vírgula)
+      <input id="fTags" placeholder="tutorial, sockets, rede">
+    </label>
+    <label>Estado
+      <select id="fSt">
+        <option>por ler</option>
+        <option>a ler</option>
+        <option>já usei</option>
+      </select>
+    </label>
+    <label>Notas
+      <textarea id="fNotes" rows="3" placeholder="Porque guardaste isto?"></textarea>
+    </label>
+    <div class="row">
+      <button type="button" id="btnCancel">Cancelar</button>
+      <button type="submit" class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+<script>
+(function(){
+  var KEY = 'centro-recursos-v1';
+  var STATUS = ['por ler','a ler','já usei'];
+  var items = load();
+  var editingId = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  function load(){
+    try { var d = JSON.parse(localStorage.getItem(KEY)); return Array.isArray(d) ? d : []; }
+    catch(e){ return []; }
+  }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(items)); }
+    catch(e){ alert('Não consegui guardar no browser. Exporta o JSON já.'); }
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function hostOf(u){
+    try { return new URL(u).hostname.replace(/^www\./,''); } catch(e){ return ''; }
+  }
+  function parseTags(s){
+    var seen = {}, out = [];
+    s.split(',').forEach(function(t){
+      t = t.trim().toLowerCase();
+      if (t && !seen[t]) { seen[t] = 1; out.push(t); }
+    });
+    return out;
+  }
+
+  function el(tag, props, children){
+    var n = document.createElement(tag);
+    if (props) Object.keys(props).forEach(function(k){
+      if (k === 'text') n.textContent = props[k];
+      else if (k === 'on') Object.keys(props.on).forEach(function(e){ n.addEventListener(e, props.on[e]); });
+      else if (k === 'data') Object.keys(props.data).forEach(function(d){ n.dataset[d] = props.data[d]; });
+      else n[k] = props[k];
+    });
+    (children || []).forEach(function(c){ if (c) n.appendChild(c); });
+    return n;
+  }
+
+  function matchSearch(list, q){
+    q = q.trim();
+    if (!q) return list.slice().sort(function(a,b){ return b.created - a.created; });
+    if (window.Fuse) {
+      var fuse = new Fuse(list, {
+        keys: ['title','url','category','tags','notes'],
+        threshold: 0.35, ignoreLocation: true
+      });
+      return fuse.search(q).map(function(r){ return r.item; });
+    }
+    var ql = q.toLowerCase();
+    return list.filter(function(i){
+      return [i.title,i.url,i.category,(i.tags||[]).join(' '),i.notes].join(' ').toLowerCase().indexOf(ql) !== -1;
+    });
+  }
+
+  function renderStats(){
+    var total = items.length;
+    var c = { 'por ler':0, 'a ler':0, 'já usei':0 };
+    items.forEach(function(i){ c[i.status] = (c[i.status]||0) + 1; });
+    var box = $('stats'); box.textContent = '';
+    [['Total', total], ['Por ler', c['por ler']], ['A ler', c['a ler']], ['Já usei', c['já usei']]].forEach(function(p){
+      box.appendChild(el('div', {className:'stat'}, [el('b',{text:String(p[1])}), el('span',{text:p[0]})]));
+    });
+    $('bar').style.width = (total ? Math.round(c['já usei']/total*100) : 0) + '%';
+  }
+
+  function renderCats(){
+    var cats = {};
+    items.forEach(function(i){ if (i.category) cats[i.category] = 1; });
+    var names = Object.keys(cats).sort(function(a,b){ return a.localeCompare(b,'pt'); });
+    var sel = $('fCat'), cur = sel.value;
+    sel.textContent = '';
+    sel.appendChild(el('option',{value:'',text:'Todas as categorias'}));
+    names.forEach(function(n){ sel.appendChild(el('option',{value:n,text:n})); });
+    sel.value = names.indexOf(cur) !== -1 ? cur : '';
+    var dl = $('catList'); dl.textContent = '';
+    names.forEach(function(n){ dl.appendChild(el('option',{value:n})); });
+  }
+
+  function renderList(){
+    var cat = $('fCat').value, st = $('fStatus').value;
+    var base = items.filter(function(i){
+      return (!cat || i.category === cat) && (!st || i.status === st);
+    });
+    var shown = matchSearch(base, $('q').value);
+    var list = $('list'); list.textContent = '';
+
+    if (!shown.length) {
+      list.appendChild(el('div',{className:'empty',
+        text: items.length ? 'Nada encontrado. Talvez nunca o tenhas guardado.' : 'Vazio. Adiciona o primeiro recurso e depois tenta realmente lê-lo.'}));
+      return;
+    }
+
+    shown.forEach(function(i){
+      var title = i.url
+        ? el('a',{href:i.url,target:'_blank',rel:'noopener noreferrer',text:i.title})
+        : el('span',{text:i.title});
+      var statusBtn = el('button',{className:'status',text:i.status,title:'Clica para mudar o estado',
+        data:{s:i.status},
+        on:{click:function(){
+          i.status = STATUS[(STATUS.indexOf(i.status)+1) % STATUS.length];
+          save(); render();
+        }}});
+
+      var meta = el('div',{className:'meta'});
+      if (i.category) meta.appendChild(el('span',{className:'chip cat',text:i.category,
+        on:{click:function(){ $('fCat').value = i.category; renderList(); }}}));
+      (i.tags||[]).forEach(function(t){
+        meta.appendChild(el('span',{className:'chip',text:'#'+t,
+          on:{click:function(){ $('q').value = t; renderList(); }}}));
+      });
+
+      var actions = el('div',{className:'actions'},[
+        el('button',{text:'Editar',on:{click:function(){ openDialog(i); }}}),
+        el('button',{className:'danger',text:'Apagar',on:{click:function(){
+          if (confirm('Apagar "' + i.title + '"?')) {
+            items = items.filter(function(x){ return x.id !== i.id; });
+            save(); render();
+          }
+        }}})
+      ]);
+
+      var card = el('article',{className:'card'},[
+        el('div',{className:'card-top'},[el('h3',null,[title]), statusBtn]),
+        i.url ? el('div',{className:'host',text:hostOf(i.url)}) : null,
+        i.notes ? el('div',{className:'notes',text:i.notes}) : null,
+        meta, actions
+      ]);
+      list.appendChild(card);
+    });
+  }
+
+  function render(){ renderStats(); renderCats(); renderList(); }
+
+  // Diálogo
+  var dlg = $('dlg');
+  function openDialog(item){
+    editingId = item ? item.id : null;
+    $('dlgTitle').textContent = item ? 'Editar recurso' : 'Novo recurso';
+    $('fTitle').value = item ? item.title : '';
+    $('fUrl').value = item ? (item.url||'') : '';
+    $('fCategory').value = item ? (item.category||'') : '';
+    $('fTags').value = item ? (item.tags||[]).join(', ') : '';
+    $('fSt').value = item ? item.status : 'por ler';
+    $('fNotes').value = item ? (item.notes||'') : '';
+    if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open','');
+    $('fTitle').focus();
+  }
+  function closeDialog(){ if (typeof dlg.close === 'function') dlg.close(); else dlg.removeAttribute('open'); }
+
+  $('btnAdd').addEventListener('click', function(){ openDialog(null); });
+  $('btnCancel').addEventListener('click', closeDialog);
+  $('form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var data = {
+      title: $('fTitle').value.trim(),
+      url: $('fUrl').value.trim(),
+      category: $('fCategory').value.trim(),
+      tags: parseTags($('fTags').value),
+      status: $('fSt').value,
+      notes: $('fNotes').value.trim()
+    };
+    if (!data.title) return;
+    if (editingId) {
+      var it = items.filter(function(x){ return x.id === editingId; })[0];
+      if (it) Object.keys(data).forEach(function(k){ it[k] = data[k]; });
+    } else {
+      data.id = uid(); data.created = Date.now();
+      items.push(data);
+    }
+    save(); closeDialog(); render();
+  });
+
+  // Filtros
+  $('q').addEventListener('input', renderList);
+  $('fCat').addEventListener('change', renderList);
+  $('fStatus').addEventListener('change', renderList);
+  document.addEventListener('keydown', function(e){
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(tag)) { e.preventDefault(); $('q').focus(); }
+  });
+
+  // Exportar / importar
+  $('btnExport').addEventListener('click', function(){
+    var blob = new Blob([JSON.stringify(items, null, 2)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'centro-recursos-' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  });
+  $('btnImport').addEventListener('click', function(){ $('file').click(); });
+  $('file').addEventListener('change', function(e){
+    var f = e.target.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try {
+        var d = JSON.parse(r.result);
+        if (!Array.isArray(d)) throw new Error('formato');
+        var urls = {};
+        items.forEach(function(i){ if (i.url) urls[i.url] = 1; });
+        var added = 0;
+        d.forEach(function(x){
+          if (!x || typeof x.title !== 'string') return;
+          if (x.url && urls[x.url]) return;
+          items.push({
+            id: uid(), created: x.created || Date.now(),
+            title: x.title, url: x.url || '', category: x.category || '',
+            tags: Array.isArray(x.tags) ? x.tags : [],
+            status: STATUS.indexOf(x.status) !== -1 ? x.status : 'por ler',
+            notes: x.notes || ''
+          });
+          added++;
+        });
+        save(); render();
+        alert('Importados ' + added + ' recursos (duplicados por URL ignorados).');
+      } catch(err){ alert('Ficheiro inválido. Isso não é um export deste centro.'); }
+      e.target.value = '';
+    };
+    r.readAsText(f);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
